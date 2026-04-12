@@ -1,5 +1,5 @@
 
-
+import Illustrationphoto from "../assets/e-Wallet6.gif"
 export default function Logins(){
     return(
         <>
@@ -35,7 +35,7 @@ export default function Logins(){
       </div>
     
       <div className="hero-image">
-        <img src="../src/assets/e-Wallet6.gif" alt="Illustration de connexion"/>
+        <img src={Illustrationphoto} alt="Illustration de connexion"/>
       </div>
     </section>
   </main>

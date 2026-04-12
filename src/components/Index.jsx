@@ -1,7 +1,7 @@
 
 import Header from "./header"
 import Footer from "./footer"
-
+import walletImg from "../assets/e-Wallet6.gif";
 
 
 
@@ -22,7 +22,7 @@ export default function Indexscreen(){
         </div>
       </div>
       <div className="hero-image">
-        <img src="../src/assets/e-Wallet6.gif" alt="E-Wallet Illustration"/>
+        <img src={walletImg} alt="E-Wallet Illustration" />
       </div>
     </section>
   </main>

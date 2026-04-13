@@ -1,6 +1,8 @@
 
 import walletlogo from "../assets/e-wallet-logo.avif"
 
+const list=["Home","About","Features","Contact"];
+
 export default function Header(){
     return(
         <>

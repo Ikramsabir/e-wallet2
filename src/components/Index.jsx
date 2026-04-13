@@ -9,7 +9,6 @@ export default function Indexscreen(){
 
     return(
         <>
-        <Header/>
       
         <main>
     <section className="hero">
@@ -26,7 +25,6 @@ export default function Indexscreen(){
       </div>
     </section>
   </main>
-  <Footer/>
       
         </>
     )

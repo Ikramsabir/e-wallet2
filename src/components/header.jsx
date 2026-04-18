@@ -7,6 +7,7 @@ export default function Header(){
     return(
         <>
         <header>
+
     <nav className="navbar">
       <a href="#" className="logo"><img src={walletlogo} alt="E-Wallet Logo"/></a>
       <ul className="nav-links">

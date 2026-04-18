@@ -1,6 +1,171 @@
+import { useState } from "react";
+import { getbeneficiaries, finduserbyaccount, findbeneficiarieByid ,findcardsbyanumcards } from "../data/database";
 
 
-export default function Dashboard(){
+export default function Dashboard({setLogin}){
+  const [user, setUser] = useState(
+  JSON.parse(sessionStorage.getItem("currentUser"))
+);
+
+const [showTransfer, setShowTransfer] = useState(false);
+const [showRecharge, setShowRecharge] = useState(false);
+const [transferData, setTransferData] = useState({
+  beneficiary: "",
+  sourceCard: "",
+  amount: ""
+});
+const [rechargeData, setRechargeData] = useState({
+  card: "",
+  amount: ""
+});
+
+function handleTransferSubmit(e) {
+  e.preventDefault();
+
+  const amount = Number(transferData.amount);
+
+  if (!transferData.beneficiary) {
+    alert("Choisir un bénéficiaire");
+    return;
+  }
+
+  if (!transferData.sourceCard) {
+    alert("Choisir une carte");
+    return;
+  }
+
+  if (isNaN(amount) || amount <= 0) {
+    alert("Montant invalide");
+    return;
+  }
+
+  if (user.wallet.balance < amount) {
+    alert("Solde insuffisant");
+    return;
+  }
+
+  const beneficiaryObject = user.wallet.beneficiaries.find(
+    (b) => b.id === transferData.beneficiary
+  );
+
+  if (!beneficiaryObject) {
+    alert("Bénéficiaire introuvable");
+    return;
+  }
+
+  const updatedUser = {
+    ...user,
+    wallet: {
+      ...user.wallet,
+      balance: user.wallet.balance - amount,
+      transactions: [
+        ...user.wallet.transactions,
+        {
+          id: Date.now().toString(),
+          type: "debit",
+          amount: amount,
+          from: transferData.sourceCard,
+          to: beneficiaryObject.name,
+          date: new Date().toLocaleDateString()
+        }
+      ]
+    }
+  };
+
+  setUser(updatedUser);
+  sessionStorage.setItem("currentUser", JSON.stringify(updatedUser));
+  setShowTransfer(false);
+  setTransferData({
+    beneficiary: "",
+    sourceCard: "",
+    amount: ""
+  });
+
+  alert(`Transfert de ${amount} réussi !`);
+}
+
+function handleRechargeSubmit(e) {
+  e.preventDefault();
+
+  const amount = Number(rechargeData.amount);
+
+  if (!rechargeData.card) {
+    alert("Doit sélectionner une carte");
+    return;
+  }
+
+  if (isNaN(amount) || amount <= 0) {
+    alert("Montant invalide");
+    return;
+  }
+
+  const selectedCard = user.wallet.cards.find(
+    (c) => c.numcards === rechargeData.card
+  );
+
+  if (!selectedCard) {
+    alert("Carte introuvable");
+    return;
+  }
+
+  if (new Date(selectedCard.expiry) <= new Date()) {
+    alert("Carte expirée");
+    return;
+  }
+
+  const updatedUser = {
+    ...user,
+    wallet: {
+      ...user.wallet,
+      balance: user.wallet.balance + amount,
+      transactions: [
+        ...user.wallet.transactions,
+        {
+          id: Date.now().toString(),
+          type: "recharge",
+          amount: amount,
+          date: new Date().toLocaleDateString(),
+          from: rechargeData.card,
+          to: "Wallet"
+        }
+      ]
+    }
+  };
+
+  setUser(updatedUser);
+  sessionStorage.setItem("currentUser", JSON.stringify(updatedUser));
+  setShowRecharge(false);
+  setRechargeData({
+    card: "",
+    amount: ""
+  });
+
+  alert(`Rechargement de ${amount} réussi !`);
+}
+
+
+
+  if(!user){
+    setLogin(false);
+  }
+
+  const monthlyIncom = user.wallet.transactions
+    .filter(t => t.type === "credit")
+    .reduce((total, t) => total + t.amount, 0);
+
+
+  const monthlyExpense = user.wallet.transactions
+    .filter(t => t.type === "debit")
+    .reduce((total, t) => total + t.amount, 0);
+
+
+  let userName=user.name;
+  let availableBalance=`${user.wallet.balance} ${user.wallet.currency}`;
+  let activeCards=user.wallet.cards.length;
+  let monthlyIncome=`${monthlyIncom} ${user.wallet.currency}`;
+  let monthlyExpenses=`${monthlyExpense} ${user.wallet.currency}`;
+
+  
     return(
         <>
         <main className="dashboard-main">
@@ -48,7 +213,7 @@ export default function Dashboard(){
 
         <section className="dashboard-section active">
           <div className="section-header">
-            <h2>Bonjour, <span >?</span> !</h2>
+            <h2>Bonjour, <span >{userName}</span> !</h2>
             <p className="date-display" id="currentDate"></p>
           </div>
 
@@ -59,7 +224,7 @@ export default function Dashboard(){
               </div>
               <div className="card-details">
                 <span className="card-label">Solde disponible</span>
-                <span className="card-value" id="availableBalance">?</span>
+                <span className="card-value" id="availableBalance">{availableBalance}</span>
               </div>
             </div>
 
@@ -69,7 +234,7 @@ export default function Dashboard(){
               </div>
               <div className="card-details">
                 <span className="card-label">Revenus</span>
-                <span className="card-value" id="monthlyIncome">?</span>
+                <span className="card-value" id="monthlyIncome">{monthlyIncome}</span>
               </div>
             </div>
 
@@ -79,7 +244,7 @@ export default function Dashboard(){
               </div>
               <div className="card-details">
                 <span className="card-label">Dépenses</span>
-                <span className="card-value" id="monthlyExpenses">?</span>
+                <span className="card-value" id="monthlyExpenses">{monthlyExpenses}</span>
               </div>
             </div>
 
@@ -89,7 +254,7 @@ export default function Dashboard(){
               </div>
               <div className="card-details">
                 <span className="card-label">Cartes actives</span>
-                <span className="card-value" id="activeCards">?</span>
+                <span className="card-value" id="activeCards">{activeCards}</span>
               </div>
             </div>
           </div>
@@ -97,12 +262,12 @@ export default function Dashboard(){
           <div className="quick-actions">
             <h3>Actions rapides</h3>
             <div className="action-buttons">
-              <button className="action-btn" id="quickTransfer">
+              <button className="action-btn" onClick={()=> setShowTransfer(true)}>
                 <i className="fas fa-paper-plane"></i>
                 <span>Transférer</span>
               </button>
 
-              <button className="action-btn" id="quickTopup">
+              <button className="action-btn" onClick={()=> setShowRecharge(true)}>
                 <i className="fas fa-plus-circle"></i>
                 <span>Recharger</span>
               </button>
@@ -118,9 +283,33 @@ export default function Dashboard(){
             <div className="section-header">
               <h3>Transactions récentes</h3>
             </div>
-            <div className="transactions-list" id="recentTransactionsList">
-              <div className="transaction-item"></div>
-            </div>
+            <div className="transactions-list">
+  {user?.wallet?.transactions
+    ?.slice()
+    .reverse()
+    .map((transaction) => {
+      const sign =
+        transaction.type === "credit" || transaction.type === "recharge"
+          ? "+"
+          : "-";
+
+      const person = transaction.to || transaction.from || "Transaction";
+
+      return (
+        <div className="transaction-item" key={transaction.id}>
+          <div className="transaction-info">
+            <span className="transaction-name">{person}</span>
+            <span className="transaction-date">{transaction.date}</span>
+          </div>
+
+          <div className={`transaction-amount ${transaction.type}`}>
+            {sign}
+            {transaction.amount} {user.wallet.currency}
+          </div>
+        </div>
+      );
+    })}
+</div>
           </div>
         </section>
 
@@ -156,7 +345,7 @@ export default function Dashboard(){
           </div>
         </section>
 
-        <section id="transfer-section" className="transfer-section hidden">
+       {showTransfer && (<section id="transfer-section" className="transfer-section active">
           <div className="section-header">
             <h2>Effectuer un transfert</h2>
             <button className="btn btn-close" id="closeTransferBtn">
@@ -171,18 +360,33 @@ export default function Dashboard(){
                 <label for="beneficiary">
                   <i className="fas fa-user"></i> Bénéficiaire
                 </label>
-                <select id="beneficiary" name="beneficiary" required>
-                  <option value="" disabled selected>Choisir un bénéficiaire</option>
-                </select>
+                <select
+  value={transferData.beneficiary}
+  onChange={(e) =>
+    setTransferData({ ...transferData, beneficiary: e.target.value })
+  }
+>
+  <option value="">Choisir un bénéficiaire</option>
+  {user.wallet.beneficiaries.map((b) => (
+    <option key={b.id} value={b.id}>
+      {b.name}
+    </option>
+  ))}
+</select>
               </div>
 
               <div className="form-group">
                 <label for="sourceCard">
                   <i className="fas fa-credit-card"></i> Depuis ma carte
                 </label>
-                <select id="sourceCard" name="sourceCard" required>
-                  <option value="" disabled selected>Sélectionner une carte</option>
-                </select>
+               <select value={transferData.sourceCard} onChange={(e) => setTransferData({ ...transferData, sourceCard: e.target.value }) }>
+  <option value="">Sélectionner une carte</option>
+  {user.wallet.cards.map((card) => (
+    <option key={card.numcards} value={card.numcards}>
+      {card.type} ****{card.numcards.slice(-4)}
+    </option>
+  ))}
+</select>
               </div>
 
               <div className="form-group">
@@ -190,7 +394,7 @@ export default function Dashboard(){
                   <i className="fas fa-euro-sign"></i> Montant
                 </label>
                 <div className="amount-input">
-                  <input type="number" id="amount" name="amount" min="1" step="0.01" placeholder="0.00" required />
+                  <input type="number" value={transferData.amount} onChange={(e) => setTransferData({ ...transferData, amount: e.target.value }) } />
                   <span className="currency">MAD</span>
                 </div>
               </div>
@@ -210,19 +414,19 @@ export default function Dashboard(){
               </div>
 
               <div className="form-actions">
-                <button type="button" className="btn btn-secondary" id="cancelTransferBtn">
+                <button type="button" className="btn btn-secondary" id="cancelTransferBtn" onClick={()=>setShowTransfer(false)}>
                   Annuler
                 </button>
-                <button type="submit" className="btn btn-primary" id="submitTransferBtn">
+                <button type="submit" className="btn btn-primary" onClick={handleTransferSubmit}>
                   <i className="fas fa-paper-plane"></i> Transférer
                 </button>
               </div>
 
             </form>
           </div>
-        </section>
+        </section>)}
 
-        <section id="recharge-section" className="transfer-section hidden">
+       {showRecharge && (<section id="recharge-section" className="transfer-section active">
   <div className="section-header">
     <h2>Effectuer un rechargement</h2>
     <button className="btn btn-close" id="closeRechargeBtn">
@@ -237,9 +441,14 @@ export default function Dashboard(){
         <label for="rechargeCard">
           <i className="fas fa-credit-card"></i> Depuis ma carte
         </label>
-        <select id="rechargeCard" name="rechargeCard" required>
-          <option value="" disabled selected>Sélectionner une carte</option>
-        </select>
+        <select value={rechargeData.card} onChange={(e) => setRechargeData({ ...rechargeData, card: e.target.value }) }>
+  <option value="">Sélectionner une carte</option>
+  {user.wallet.cards.map((card) => (
+    <option key={card.numcards} value={card.numcards}>
+      {card.type} ****{card.numcards.slice(-4)}
+    </option>
+  ))}
+</select>
       </div>
 
       <div className="form-group">
@@ -247,30 +456,28 @@ export default function Dashboard(){
           <i className="fas fa-euro-sign"></i> Montant
         </label>
         <div className="amount-input">
-          <input
-            type="number"
-            id="rechargeAmount"
-            name="rechargeAmount"
-            min="1"
-            step="0.01"
-            placeholder="0.00"
-            required  />
+          <input type="number"
+  value={rechargeData.amount}
+  onChange={(e) =>
+    setRechargeData({ ...rechargeData, amount: e.target.value })
+  }
+/>
           <span className="currency">MAD</span>
         </div>
       </div>
 
       <div className="form-actions">
-        <button type="button" className="btn btn-secondary" id="cancelRechargeBtn">
+        <button type="button" className="btn btn-secondary" id="cancelRechargeBtn" onClick={()=>setShowRecharge(false)}>
           Annuler
         </button>
-        <button type="submit" className="btn btn-primary" id="submitRechargeBtn">
+        <button type="submit" className="btn btn-primary" onClick={handleRechargeSubmit}>
           <i className="fas fa-plus-circle"></i> Recharger
         </button>
       </div>
 
     </form>
   </div>
-</section>
+</section>)}
 
       </div>
     </div>

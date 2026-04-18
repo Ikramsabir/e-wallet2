@@ -161,6 +161,7 @@ function handleTransferSubmit(e) {
     transferData.sourceCard,
     beneficiaryObject.name
   );
+
 }
 
 //Recharger *********
@@ -509,7 +510,7 @@ function handleRechargeSubmit(e) {
           </div>
 
           <div className="transfer-container">
-            <form id="transferForm" className="transfer-form">
+            <form id="transferForm" className="transfer-form" onSubmit={handleTransferSubmit}>
 
               <div className="form-group">
                 <label for="beneficiary">
@@ -572,7 +573,7 @@ function handleRechargeSubmit(e) {
                 <button type="button" className="btn btn-secondary" id="cancelTransferBtn" onClick={()=>setShowTransfer(false)}>
                   Annuler
                 </button>
-                <button type="submit" className="btn btn-primary" onClick={handleTransferSubmit}>
+                <button type="submit" className="btn btn-primary">
                   <i className="fas fa-paper-plane"></i> Transférer
                 </button>
               </div>
@@ -590,7 +591,7 @@ function handleRechargeSubmit(e) {
   </div>
 
   <div className="transfer-container">
-    <form id="rechargeForm" className="transfer-form">
+    <form id="rechargeForm" className="transfer-form" onSubmit={handleRechargeSubmit}>
 
       <div className="form-group">
         <label for="rechargeCard">
@@ -625,7 +626,7 @@ function handleRechargeSubmit(e) {
         <button type="button" className="btn btn-secondary" id="cancelRechargeBtn" onClick={()=>setShowRecharge(false)}>
           Annuler
         </button>
-        <button type="submit" className="btn btn-primary" onClick={handleRechargeSubmit}>
+        <button type="submit" className="btn btn-primary" >
           <i className="fas fa-plus-circle"></i> Recharger
         </button>
       </div>

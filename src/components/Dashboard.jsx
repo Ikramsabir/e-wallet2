@@ -298,7 +298,7 @@ function handleRechargeSubmit(e) {
   recharge(user, rechargeData.card, amount);
 }
 
-
+//********************************************************* */
 
   if(!user){
     setLogin(false);

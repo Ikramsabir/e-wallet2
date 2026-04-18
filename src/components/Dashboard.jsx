@@ -19,6 +19,112 @@ const [rechargeData, setRechargeData] = useState({
   amount: ""
 });
 
+//Transfer *****************************
+function checkUser(numcompte) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const destinataire = finduserbyaccount(numcompte);
+
+      if (destinataire) {
+        resolve(destinataire);
+      } else {
+        reject("Destinataire non trouvé");
+      }
+    }, 500);
+  });
+}
+
+function checkSolde(exp, amount) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const soldeActuel = exp.wallet.balance;
+
+      if (soldeActuel >= amount) {
+        resolve("Solde suffisant");
+      } else {
+        reject("Solde insuffisant");
+      }
+    }, 400);
+  });
+}
+
+function updateSolde(exp, amount) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const updatedUser = {
+        ...exp,
+        wallet: {
+          ...exp.wallet,
+          balance: exp.wallet.balance - amount
+        }
+      };
+
+      resolve(updatedUser);
+    }, 300);
+  });
+}
+
+function addtransactions(updatedUser, beneficiaryName, amount, selectedCard) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const transactionDebit = {
+        id: Date.now().toString(),
+        type: "debit",
+        amount: amount,
+        from: selectedCard,
+        to: beneficiaryName,
+        date: new Date().toLocaleDateString()
+      };
+
+      const finalUser = {
+        ...updatedUser,
+        wallet: {
+          ...updatedUser.wallet,
+          transactions: [...updatedUser.wallet.transactions, transactionDebit]
+        }
+      };
+
+      resolve(finalUser);
+    }, 200);
+  });
+}
+
+async function transferer(exp, numcompte, amount, selectedCard, beneficiaryName) {
+  try {
+    const destinataire = await checkUser(numcompte);
+    console.log("Étape 1: Destinataire trouvé -", destinataire.name);
+
+    const soldemessage = await checkSolde(exp, amount);
+    console.log("Étape 2:", soldemessage);
+
+    const updatedUser = await updateSolde(exp, amount);
+    console.log("Étape 3: Solde mis à jour");
+
+    const finalUser = await addtransactions(
+      updatedUser,
+      beneficiaryName,
+      amount,
+      selectedCard
+    );
+    console.log("Étape 4: Transaction enregistrée");
+
+    setUser(finalUser);
+    sessionStorage.setItem("currentUser", JSON.stringify(finalUser));
+
+    setShowTransfer(false);
+    setTransferData({
+      beneficiary: "",
+      sourceCard: "",
+      amount: ""
+    });
+
+    alert(`Transfert de ${amount} réussi!`);
+  } catch (error) {
+    console.log("Erreur :", error);
+    alert(error);
+  }
+}
+
 function handleTransferSubmit(e) {
   e.preventDefault();
 
@@ -39,11 +145,6 @@ function handleTransferSubmit(e) {
     return;
   }
 
-  if (user.wallet.balance < amount) {
-    alert("Solde insuffisant");
-    return;
-  }
-
   const beneficiaryObject = user.wallet.beneficiaries.find(
     (b) => b.id === transferData.beneficiary
   );
@@ -53,36 +154,131 @@ function handleTransferSubmit(e) {
     return;
   }
 
-  const updatedUser = {
-    ...user,
-    wallet: {
-      ...user.wallet,
-      balance: user.wallet.balance - amount,
-      transactions: [
-        ...user.wallet.transactions,
-        {
-          id: Date.now().toString(),
-          type: "debit",
-          amount: amount,
-          from: transferData.sourceCard,
-          to: beneficiaryObject.name,
-          date: new Date().toLocaleDateString()
-        }
-      ]
-    }
-  };
-
-  setUser(updatedUser);
-  sessionStorage.setItem("currentUser", JSON.stringify(updatedUser));
-  setShowTransfer(false);
-  setTransferData({
-    beneficiary: "",
-    sourceCard: "",
-    amount: ""
-  });
-
-  alert(`Transfert de ${amount} réussi !`);
+  transferer(
+    user,
+    beneficiaryObject.account,
+    amount,
+    transferData.sourceCard,
+    beneficiaryObject.name
+  );
 }
+
+//Recharger *********
+function checkCard(numcards) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const card = findcardsbyanumcards(numcards);
+      if (card) {
+        resolve(card);
+      } else {
+        reject("Carte introuvable");
+      }
+    }, 400);
+  });
+}
+
+function checkAmount(amount) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (!isNaN(amount) && amount > 0) {
+        resolve("Montant valide");
+      } else {
+        reject("Montant invalide");
+      }
+    }, 400);
+  });
+}
+
+function checkExpiry(numcards) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const card = findcardsbyanumcards(numcards);
+      const today = new Date();
+      const expiryDate = new Date(card.expiry);
+
+      if (expiryDate > today) {
+        resolve("Carte valide");
+      } else {
+        reject("Carte expirée");
+      }
+    }, 400);
+  });
+}
+
+function addbalance(user, amount) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const updatedUser = {
+        ...user,
+        wallet: {
+          ...user.wallet,
+          balance: user.wallet.balance + amount
+        }
+      };
+
+      resolve(updatedUser);
+    }, 400);
+  });
+}
+
+function addrechargetransaction(updatedUser, amount, cards) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const transaction = {
+        id: Date.now().toString(),
+        type: "recharge",
+        amount: amount,
+        date: new Date().toLocaleDateString(),
+        from: cards,
+        to: "Wallet"
+      };
+
+      const finalUser = {
+        ...updatedUser,
+        wallet: {
+          ...updatedUser.wallet,
+          transactions: [...updatedUser.wallet.transactions, transaction]
+        }
+      };
+
+      resolve(finalUser);
+    }, 400);
+  });
+}
+
+async function recharge(user, cards, amount) {
+  try {
+    const selectedCard = await checkCard(cards);
+    console.log("Etape 1 : carte trouvée");
+
+    const messageAmount = await checkAmount(amount);
+    console.log("Etape 2 :", messageAmount);
+
+    const messageExpiry = await checkExpiry(selectedCard.numcards);
+    console.log("Etape 3 :", messageExpiry);
+
+    const updatedUser = await addbalance(user, amount);
+    console.log("Etape 4 : solde ajouté");
+
+    const finalUser = await addrechargetransaction(updatedUser, amount, cards);
+    console.log("Etape 5 : transaction ajoutée");
+
+    setUser(finalUser);
+    sessionStorage.setItem("currentUser", JSON.stringify(finalUser));
+
+    setShowRecharge(false);
+    setRechargeData({
+      card: "",
+      amount: ""
+    });
+
+    alert(`Rechargement de ${amount} réussi!`);
+  } catch (error) {
+    console.log(error);
+    alert(error);
+  }
+}
+
 
 function handleRechargeSubmit(e) {
   e.preventDefault();
@@ -99,48 +295,7 @@ function handleRechargeSubmit(e) {
     return;
   }
 
-  const selectedCard = user.wallet.cards.find(
-    (c) => c.numcards === rechargeData.card
-  );
-
-  if (!selectedCard) {
-    alert("Carte introuvable");
-    return;
-  }
-
-  if (new Date(selectedCard.expiry) <= new Date()) {
-    alert("Carte expirée");
-    return;
-  }
-
-  const updatedUser = {
-    ...user,
-    wallet: {
-      ...user.wallet,
-      balance: user.wallet.balance + amount,
-      transactions: [
-        ...user.wallet.transactions,
-        {
-          id: Date.now().toString(),
-          type: "recharge",
-          amount: amount,
-          date: new Date().toLocaleDateString(),
-          from: rechargeData.card,
-          to: "Wallet"
-        }
-      ]
-    }
-  };
-
-  setUser(updatedUser);
-  sessionStorage.setItem("currentUser", JSON.stringify(updatedUser));
-  setShowRecharge(false);
-  setRechargeData({
-    card: "",
-    amount: ""
-  });
-
-  alert(`Rechargement de ${amount} réussi !`);
+  recharge(user, rechargeData.card, amount);
 }
 
 

@@ -49,7 +49,7 @@ export default function Logins({setdashboard}){
             <span className="toggle-password" >👁</span>
           </div>
           <p></p>
-          <button  type="button" value={password} className="btn btn-primary" onClick={handler}>
+          <button  type="button"  className="btn btn-primary" onClick={handler}>
            { Search?"Search .....":"Se connecter"}
           </button>
         </form>
